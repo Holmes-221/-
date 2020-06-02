@@ -1,0 +1,67 @@
+shuju=read.delim("D:\\BaiduNetdiskDownload\\shuju1.txt")
+attach(shuju)
+shuju_new=shuju[,2:8]  #提取有用数据,其中第一列为因变量y，第二至八列为自变量x
+
+#对回归方程总体进行分析
+hgfc_tall=lm(y~x1+x2+x3+x4+x5+x6)
+summary(hgfc_tall)
+cor(shuju_new)      #相关系数
+anova(hgfc_tall)
+confint(hgfc_tall)  #回归系数的置信区间
+plot(hgfc_tall)     #回归方程的整体情况
+c_tall=coef(hgfc_tall)  #将回归方程的系数存储到c_tall中
+#依次剔除未能通过检验的自变量,直到所有变量通过检验
+
+hgfc_2=lm(y~x1+x3+x4+x5+x6)
+summary(hgfc_2)
+hgfc_1=lm(y~x3+x4+x5+x6)
+summary(hgfc_1)
+hgfc_5=lm(y~x3+x4+x6)
+summary(hgfc_5)
+hgfc_4=lm(y~x3+x6)
+summary(hgfc_4)
+c_4=coef(hgfc_4)
+cor(shuju_new)
+confint(hgfc_tall)
+plot(hgfc_tall)
+#由此可得影响收入的主要自变量x3,x6;次要自变量x4,x5,x1,x2
+
+#原始回归方程
+e1=resid(hgfc_tall)         #残差分析
+sre1=rstandard(hgfc_tall)   #学生化残差
+plot(t,sre1)           #画学生化残差图
+abline(h=c(0),lty=5)   #添加直线sre1=0
+#修正后的回归方程          
+e2=resid(hgfc_4)        
+sre2=rstandard(hgfc_4)   
+plot(t,sre2)           
+abline(h=c(0),lty=5)
+
+#共线性判断
+#方差扩大因子法
+install.packages("car")
+library("car")
+vif(hgfc_tall)  #如果方差扩大因子>10，则说明存在多重共线性
+
+#特征根判别法
+xx=cor(shuju_new[2:7])
+kappa(xx,exact = TRUE) #如果条件数>1000，则说明存在严重的多重共线性
+eigen(xx)              #求解出各类特征值
+#可知x1,x2甚至x3,x4存在严重的多重共线性
+
+#岭回归分析
+datas=data.frame(scale(shuju_new))   #对数据进行标准化处理
+library("MASS")
+#岭回归建立，lambda为岭回归参数
+rid=lm.ridge(y~.-1,data = datas,lambda = seq(0,3,0.1))
+xishu=coef(rid)   #将不同的岭回归参数结果赋值给beta
+
+#绘制岭迹图
+k=rid$lambda     #将岭回归参数传递给K
+#创建图形区域
+plot(k,k,type = "n",xlab = "岭回归系数k",ylab = "岭回归系数",ylim=c(-3,3))
+lt=c(1:6)
+char=c(18:23)
+for(i in 1:6)
+  lines(k,xishu[,i],type = "o",lty = lt[i],pch = char[i],cex = 0.75)    
+  legend(locator(1), intset = 0.5,legend = c("x1","x2","x3","x4","x5","x6"),cex = 0.8,pch = char,lty = lt )
